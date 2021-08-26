@@ -1,1 +1,1 @@
-# BuforKo-owy
+# BuforKolowy
