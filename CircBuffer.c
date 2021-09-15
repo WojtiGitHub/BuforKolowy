@@ -1,87 +1,35 @@
 #include "CircBuffer.h"
 
-/* Sprawdza czy buffor jest zapełniony */
-bool static isFull(CircBuffer *circbuffer){
+static bool isFull(const CircBuffer * const circbuffer){
 
-    /* ptmp = head++ */
-    uint8_t *ptmp = circbuffer->phead;
+    if(circbuffer){
 
-    if(circbuffer->phead != &(circbuffer->abuffer[circbuffer->xbufferSize-1])){
+        /* ptmp = head++ */
+        uint8_t *ptmp = circbuffer->head;
 
-        ptmp++;
-    }
-    else{
+        if(circbuffer->head != &(circbuffer->buffer[circbuffer->bufferSize-1])){
 
-        ptmp = &(circbuffer->abuffer[0]);
+            ptmp++;
+        }
+        else{
 
-    }
+            ptmp = &(circbuffer->buffer[0]);
 
-    /* Jeśli head++ == tail to zapełniony */
-    if(ptmp == circbuffer->ptail){
+        }
 
-        return true;
+        /* Jeśli head++ == tail to zapełniony */
+        if(ptmp == circbuffer->tail){
 
-    }
-    else{
-
-        return false;
-
-    }
-
-}
-
-/* Sprawdza czy buffor jest pusty */
-bool static isEmpty(CircBuffer *circbuffer){
-
-    /* Jeśli head == tail to pusty */
-    if(circbuffer->phead == circbuffer->ptail){
-
-        return true;
-
-    }
-    else{
-
-        return false;
-
-    }
-
-}
-
-
-void CircBuffer_init(CircBuffer *circbuffer, uint8_t* const buffer, const uint8_t buffersize){
-
-    circbuffer->abuffer = buffer;
-    circbuffer->phead = &(circbuffer->abuffer[0]);
-    circbuffer->ptail = &(circbuffer->abuffer[0]);
-    circbuffer->xbufferSize = buffersize;
-
-}
-
-bool CircBuffer_addChar(CircBuffer *circbuffer, const uint8_t *character){
-
-    /* Jeśli jest miejsce */
-    if(isFull(circbuffer) != true){
-
-
-        /* Dodaj character do bufora */
-        (*circbuffer->phead) = *character;
-
-        /* Przestaw head na następny element */
-        if(circbuffer->phead != &(circbuffer->abuffer[circbuffer->xbufferSize-1])){
-
-            circbuffer->phead++;
+            return true;
 
         }
         else{
 
-            circbuffer->phead = &(circbuffer->abuffer[0]);
+            return false;
 
         }
 
-        return true;
-
     }
-    /* Jeśli nie ma miejsca */
     else{
 
         return false;
@@ -90,30 +38,202 @@ bool CircBuffer_addChar(CircBuffer *circbuffer, const uint8_t *character){
 
 }
 
-bool CircBuffer_getChar(CircBuffer *circbuffer, uint8_t *character){
+static bool isEmpty(const CircBuffer * const circbuffer){
 
-    /* Jeśli coś jest */
-    if(isEmpty(circbuffer) != true){
+    if(circbuffer){
+
+        /* Jeśli head == tail to pusty */
+        if(circbuffer->head == circbuffer->tail){
+
+            return true;
+
+        }
+        else{
+
+            return false;
+
+        }
+
+    }
+    else{
+
+        return false;
+
+    }
+
+}
+
+static bool addChar(CircBuffer * const circbuffer, const uint8_t * const character){
+
+    if((circbuffer) && (character)){
+
+        /* Jeśli jest miejsce */
+        if(!isFull(circbuffer)){
+
+            /* Dodaj character do bufora */
+            (*circbuffer->head) = *character;
+
+            /* Przestaw head na następny element */
+            if(circbuffer->head != &(circbuffer->buffer[circbuffer->bufferSize-1])){
+
+                circbuffer->head++;
+
+            }
+            else{
+
+                circbuffer->head = &(circbuffer->buffer[0]);
+
+            }
+
+            return true;
+
+        }
+        /* Jeśli nie ma miejsca */
+        else{
+
+            return false;
+
+        }
+
+    }
+    else{
+
+        return false;
+
+    }
+
+}
+
+static bool removeChar(CircBuffer * const circbuffer, uint8_t * const character){
+
+    if((circbuffer) && (character)){
+
+        /* Jeśli coś jest */
+        if(!isEmpty(circbuffer)){
 
         /* Przypisz character element bufora */
-        *character = *(circbuffer->ptail);
+        *character = *(circbuffer->tail);
 
         /* Przestaw tail na następny element */
-        if(circbuffer->ptail != &(circbuffer->abuffer[circbuffer->xbufferSize-1])){
+        if(circbuffer->tail != &(circbuffer->buffer[circbuffer->bufferSize-1])){
 
-            circbuffer->ptail++;
+            circbuffer->tail++;
 
         }
         else{
 
-            circbuffer->ptail = &(circbuffer->abuffer[0]);
+            circbuffer->tail = &(circbuffer->buffer[0]);
+
+        }
+
+        return true;
+
+        }
+        /* Jeśli nic nie ma */
+        else{
+
+            return false;
+
+        }
+
+    }
+    else{
+
+        return false;
+
+    }
+
+}
+
+/*
+@brief  Initializes circular buffer struct with a given buffer.
+@note   Buffer used by circular buffer is not a part of the struct.
+        Circular buffer holds only the buffers address.
+@param  circbuffer - Pointer to CircBuffer struct.
+@param  buffer - Pointer to buffer that will act as circular.
+@param  buffersize - Size of the pointed buffer.
+@retval true if initialize passed otherwise false
+*/
+bool CircBuffer_init(CircBuffer * const circbuffer, uint8_t * const buffer, const uint8_t buffersize){
+
+    if((circbuffer) && (buffer) && (buffersize > 0U)){
+
+        circbuffer->buffer = buffer;
+        circbuffer->bufferSize = buffersize;
+        circbuffer->head = &(circbuffer->buffer[0]);
+        circbuffer->tail = &(circbuffer->buffer[0]);
+
+        return true;
+
+    }
+    else{
+
+        return false;
+
+    }
+
+}
+
+/*
+@brief  Writes array of data to the circular buffer.
+@param  circbuffer - Pointer to CircBuffer struct.
+@param  data - Pointer to data buffer.
+@param  datasize - Amount of data elements u8 to be added.
+@retval true if all data added otherwise false
+@note   Function returns false if circular buffer gets full while
+        adding data.
+*/
+bool CircBuffer_write(CircBuffer * const circbuffer, const uint8_t * const data, const uint8_t datasize){
+
+    if((circbuffer) && (data) && (datasize > 0U)){
+
+        for(uint8_t i = 0 ; i < datasize ; i++){
+
+            if(!addChar(circbuffer, &data[i])){
+
+            return false;
+
+            }
 
         }
 
         return true;
 
     }
-    /* Jeśli nic nie ma */
+    else{
+
+        return false;
+
+    }
+
+}
+
+/*
+@brief  Reads array of data from the circular buffer.
+@param  circbuffer - Pointer to CircBuffer struct.
+@param  data - Pointer to data buffer.
+@param  datasize - Amount of data elements u8 to be removed.
+@retval true if datasize data removed otherwise false
+@note   Function returns false if circular buffer gets empty while
+        removing data.
+*/
+bool CircBuffer_read(CircBuffer * const circbuffer, uint8_t * const data, const uint8_t datasize){
+
+    if((circbuffer) && (data) && (datasize > 0U)){
+
+        for(uint8_t i = 0 ; i < datasize ; i++){
+
+            if(!removeChar(circbuffer, &data[i])){
+
+            return false;
+
+            }
+
+        }
+
+        return true;
+
+    }
     else{
 
         return false;
